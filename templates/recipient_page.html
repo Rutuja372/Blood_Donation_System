@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Recipient Portal{% endblock %}
+
+{% block content %}
+
+    {% if view == 'login' %}
+    <h1>Recipient Login 🧑‍🤝‍🧑</h1>
+    <p class="flash info">Enter your credentials. If your account is not found, you will be automatically redirected to registration.</p>
+    <form method="POST">
+        <label for="email">Email (Login ID):</label><input type="email" id="email" name="email" value="{{ request.args.get('email', '') }}" required>
+        <label for="password">Password:</label><input type="password" id="password" name="password" required>
+        <button type="submit" class="btn btn-primary">Login</button>
+    </form>
+
+    {% elif view == 'register' %}
+    <h1>Recipient Registration 🧑‍🤝‍🧑</h1>
+    <p class="flash info">Please complete your patient details. Your login credentials have been saved from the previous screen.</p>
+    <form method="POST">
+        <input type="hidden" name="registration_email" value="{{ request.args.get('email', '') }}" required>
+        <input type="hidden" name="registration_password" value="{{ request.args.get('password', '') }}" required>
+
+        <h2>Patient Details</h2>
+        <label for="name">Name:</label><input type="text" id="name" name="name" required>
+        <label for="age">Age:</label><input type="number" id="age" name="age" required>
+        <label for="gender">Gender:</label>
+        <select id="gender" name="gender" required><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select>
+        <label for="blood_group_needed">Required Blood Group:</label>
+        <select id="blood_group_needed" name="blood_group_needed" required><option value="O+">O+</option><option value="A+">A+</option><option value="B+">B+</option><option value="AB+">AB+</option><option value="O-">O-</option><option value="A-">A-</option><option value="B-">B-</option><option value="AB-">AB-</option></select>
+        <label for="contact">Contact Number:</label><input type="text" id="contact" name="contact">
+        <label for="address">Address:</label><textarea id="address" name="address"></textarea>
+        
+        <button type="submit" class="btn btn-success">Complete Registration</button>
+    </form>
+    <p style="margin-top: 20px;"><a href="{{ url_for('recipient_page', view='login') }}">Back to Login</a></p>
+
+
+    {% elif view == 'dashboard' and recipient %}
+    <h1>Recipient Dashboard for {{ recipient.Name }}</h1>
+
+    <div class="card-panel" style="border-left-color: var(--primary-red);">
+        <h2>Submit a New Blood Request</h2>
+        <form method="POST">
+            <input type="hidden" name="request_form" value="1">
+            <div style="display: flex; gap: 20px;">
+                <div style="flex-basis: 50%;">
+                    <label for="blood_group">Blood Group Required:</label>
+                    <select id="blood_group" name="blood_group" required>
+                        {% set blood_groups = ['O+', 'A+', 'B+', 'AB+', 'O-', 'A-', 'B-', 'AB-'] %}
+                        {% for group in blood_groups %}
+                            <option value="{{ group }}" {% if recipient.BloodGroup == group %}selected{% endif %}>{{ group }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label for="units">Units Required (mL):</label>
+                    <input type="number" id="units" name="units" min="100" placeholder="e.g., 500" required>
+                </div>
+                <div style="flex-basis: 50%;">
+                    <label for="hospital">Hospital Name:</label>
+                    <input type="text" id="hospital" name="hospital" placeholder="e.g., City General Hospital" required>
+                    <label for="reason">Reason for Request:</label>
+                    <textarea id="reason" name="reason" rows="2" placeholder="e.g., Emergency Surgery, Transfusion" required></textarea>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top: 15px;">Submit Request</button>
+        </form>
+    </div>
+
+    <hr>
+    <h2>Quick Check: Current Blood Stock</h2>
+    <table style="width: 50%;">
+        <thead><tr><th>Blood Group</th><th>Available Units (mL)</th></tr></thead>
+        <tbody>
+            {% for stock in blood_stock %}
+            <tr><td>{{ stock.BloodGroup }}</td><td>{{ stock.AvailableUnits }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <hr>
+    <h2 id="status">Request Status & History</h2>
+    <table>
+        <thead><tr><th>Request ID</th><th>Group</th><th>Units</th><th>Date</th><th>Status</th></tr></thead>
+        <tbody>
+            {% for req in request_history %}
+            <tr>
+                <td>{{ req.RequestID }}</td>
+                <td>{{ req.BloodGroup }}</td>
+                <td>{{ req.RequiredUnits }}</td>
+                <td>{{ req.RequestDate }}</td>
+                <td>
+                    <strong class="
+                        {% if req.RequestStatus == 'Approved' %}status-green
+                        {% elif req.RequestStatus == 'Rejected' %}status-red
+                        {% elif req.RequestStatus == 'Completed' %}status-blue
+                        {% else %}status-orange
+                        {% endif %}
+                    ">
+                    {{ req.RequestStatus }}
+                    </strong>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">No blood requests submitted yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <h1 class="flash danger">Access Denied. Please log in or register.</h1>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Donor Portal{% endblock %}
+
+{% block content %}
+
+    {% if view == 'login' %}
+    <h1>Donor Login 🩸</h1>
+    <form method="POST">
+        <label for="email">Email ID:</label>
+        <input type="email" id="email" name="email" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+        <button type="submit" class="btn btn-primary">Login / Auto-Register</button>
+    </form>
+    <p class="flash info" style="margin-top: 20px;">
+        If your email is not found, the system will automatically create an account using this email and password.
+    </p>
+
+    {% elif view == 'dashboard' and donor %}
+    <h1>Welcome, {{ donor.Name }}! 👋</h1>
+
+    <div class="card-panel" style="border-left-color: var(--secondary-green);">
+        <h3>Donation Eligibility Status:</h3>
+        <p>Your last donation was on: <strong>{{ donor.LastDonationDate if donor.LastDonationDate else 'Never' }}</strong></p>
+        <p>Current Status: <strong class="{% if 'Eligible' in eligibility_status %}status-green{% else %}status-red{% endif %}">{{ eligibility_status }}</strong></p>
+    </div>
+    
+    <hr>
+    <h2>Record a New Blood Donation (Health Screening)</h2>
+    <p class="flash info">Please confirm your current personal and health details for today's required screening. This will update your profile.</p>
+    
+    <form method="POST" id="donationForm">
+        <input type="hidden" name="donation_form" value="1">
+
+        <fieldset>
+            <legend>Personal & Health Details (Update Profile)</legend>
+
+            <div style="display: flex; gap: 20px;">
+                <div style="flex-basis: 50%;">
+                    <label for="age">Current Age (18-65):</label>
+                    <input type="number" id="age" name="age" min="18" max="65" value="{{ donor.Age if donor.Age and donor.Age > 0 else 25 }}" required>
+                    
+                    <label for="weight">Weight (kg) - Min 50kg:</label>
+                    <input type="number" id="weight" name="weight" min="50" value="{{ donor.Weight if donor.Weight else 70 }}" required>
+
+                    <label for="gender">Gender:</label>
+                    <select id="gender" name="gender" required>
+                        <option value="Male" {% if donor.Gender == 'Male' %}selected{% endif %}>Male</option>
+                        <option value="Female" {% if donor.Gender == 'Female' %}selected{% endif %}>Female</option>
+                        <option value="Other" {% if donor.Gender == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div style="flex-basis: 50%;">
+                    <label for="blood_group">Blood Group:</label>
+                    <select id="blood_group" name="blood_group" required>
+                        {% set blood_groups = ['O+', 'A+', 'B+', 'AB+', 'O-', 'A-', 'B-', 'AB-'] %}
+                        {% for group in blood_groups %}
+                            <option value="{{ group }}" {% if donor.BloodGroup == group %}selected{% endif %}>{{ group }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <label for="contact">Contact Number:</label>
+                    <input type="text" id="contact" name="contact" value="{{ donor.ContactNumber if donor.ContactNumber else '' }}" required>
+                    
+                    <label for="address">Address (City/State):</label>
+                    <input type="text" id="address" name="address" value="{{ donor.Address if donor.Address else '' }}" required>
+                </div>
+            </div>
+            
+            <label for="diseases">Chronic Diseases/Conditions (Type 'None' if clear):</label>
+            <input type="text" id="diseases" name="diseases" placeholder="e.g., Diabetes, Hypertension, None" 
+                   value="{{ donor.ChronicDiseases if donor.ChronicDiseases and donor.ChronicDiseases != 'N/A' else 'None' }}">
+        </fieldset>
+
+        <fieldset style="margin-top: 20px;">
+            <legend>Donation Details</legend>
+            <label for="date">Donation Date:</label>
+            <input type="date" id="date" name="date" value="{{ today }}" max="{{ today }}" required>
+
+            <label for="units">Units Donated (mL) - Standard 450mL:</label>
+            <input type="number" id="units" name="units" min="350" max="500" value="450" required>
+
+            <label for="hospital">Donation Center:</label>
+            <input type="text" id="hospital" name="hospital" placeholder="e.g., City Blood Bank" required>
+
+            <button type="submit" class="btn btn-primary">Confirm & Submit Donation</button>
+        </fieldset>
+    </form>
+    
+    <hr>
+    <h2>Your Donation History</h2>
+    {% if donation_history %}
+    <table>
+        <thead><tr><th>Date</th><th>Units (mL)</th><th>Center</th></tr></thead>
+        <tbody>
+            {% for donation in donation_history %}
+            <tr>
+                <td>{{ donation.DonationDate }}</td>
+                <td>{{ donation.UnitsDonated }}</td>
+                <td>{{ donation.DonationCenter }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="flash info">No donation history recorded.</p>
+    {% endif %}
+
+    {% else %}
+        <h1 class="flash danger">Access Denied. Please log in.</h1>
+    {% endif %}
+
+{% endblock %}

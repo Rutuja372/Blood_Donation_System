@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Select Your Role{% endblock %}
+
+{% block content %}
+    <h1>Welcome to the Blood Donation Management System</h1>
+    
+    <h2>Role Selection</h2>
+    <p>Please select your role to proceed to the relevant portal:</p>
+    <div class="role-buttons">
+        <a href="{{ url_for('donor_page', view='login') }}" class="btn btn-primary">🔴 Donor</a>
+        <a href="{{ url_for('recipient_page', view='login') }}" class="btn btn-primary">🧑‍🤝‍🧑 Recipient</a>
+        <a href="{{ url_for('admin_page') }}" class="btn btn-warning">🛠 Admin</a>
+    </div>
+
+    <hr>
+    
+    <div class="card-panel">
+        <h3>System Information</h3>
+        <p>The system efficiently manages blood stock, tracks donations, and handles blood requests from patients.</p>
+        <p><strong>Emergency Contact:</strong> 📞 +91-12345-67890 (24/7 Helpline)</p>
+    </div>
+
+    <hr>
+
+    <h2>Quick Check: Blood Stock Availability (Units in mL)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Blood Group</th>
+                <th>Available Units (mL)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stock in stock_levels %}
+            <tr>
+                <td><strong>{{ stock.BloodGroup }}</strong></td>
+                <td>
+                    <span class="{% if stock.AvailableUnits < 500 %}status-red{% else %}status-green{% endif %}">
+                        {{ stock.AvailableUnits }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

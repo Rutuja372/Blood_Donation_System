@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Portal{% endblock %}
+
+{% block content %}
+
+    {% if view == 'login' %}
+    <h1>Admin Login 🛠</h1>
+    <form method="POST">
+        <label for="username">Username:</label><input type="text" id="username" name="username" required>
+        <label for="password">Password:</label><input type="password" id="password" name="password" required>
+        <button type="submit" class="btn btn-warning">Login / Auto-Register</button>
+    </form>
+    <p style="margin-top: 20px;">Use the sample data provided: **admin1** / **admin@123**</p>
+
+    {% elif view == 'dashboard' %}
+    <h1>Admin Dashboard - System Management</h1>
+
+    <div class="card-panel" style="border-left-color: var(--warning-orange);">
+        <h3 id="reports">Reports Summary</h3>
+        <div style="display: flex; justify-content: space-around; text-align: center; font-size: 1.1em;">
+            <div><p>Total Donations (mL):</p><strong>{{ reports.total_donations }}</strong></div>
+            <div><p>Total Requests:</p><strong>{{ reports.total_requests }}</strong></div>
+            <div><p>Pending:</p><strong class="status-orange">{{ reports.pending_requests }}</strong></div>
+            <div><p>Approved:</p><strong class="status-green">{{ reports.approved_requests }}</strong></div>
+            <div><p>Completed:</p><strong class="status-blue">{{ reports.completed_requests }}</strong></div>
+        </div>
+    </div>
+    
+    <hr>
+    <h2 id="stock">Blood Stock Management (mL)</h2>
+    <p class="flash info">Stock levels shown below are read-only.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Blood Group</th>
+                <th>Available Units</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stock in blood_stock %}
+            <tr>
+                <td><strong>{{ stock.BloodGroup }}</strong></td>
+                <td>{{ stock.AvailableUnits }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <hr>
+    <h2 id="requests">Approve/Reject Pending Requests</h2>
+    {% if pending_requests %}
+    <table>
+        <thead><tr><th>ID</th><th>Recipient</th><th>Group</th><th>Units (mL)</th><th>Action</th></tr></thead>
+        <tbody>
+            {% for req in pending_requests %}
+            <tr>
+                <td>{{ req.RequestID }}</td>
+                <td>{{ req.RecipientName }}</td>
+                <td>{{ req.BloodGroup }}</td>
+                <td>{{ req.RequiredUnits }}</td>
+                <td>
+                    <form method="POST" style="display:inline;">
+                        <input type="hidden" name="request_id" value="{{ req.RequestID }}">
+                        <input type="hidden" name="request_action" value="Approve">
+                        <button type="submit" class="btn btn-success" style="padding: 5px;">Approve</button>
+                    </form>
+                    <form method="POST" style="display:inline;">
+                        <input type="hidden" name="request_id" value="{{ req.RequestID }}">
+                        <input type="hidden" name="request_action" value="Reject">
+                        <button type="submit" class="btn btn-danger" style="padding: 5px;">Reject</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="flash info">No pending blood requests.</p>
+    {% endif %}
+
+    <hr>
+    <h2 id="approved_requests">Approved Requests (Ready for Completion)</h2>
+    {% if approved_requests %}
+    <table>
+        <thead><tr><th>ID</th><th>Recipient</th><th>Group</th><th>Units (mL)</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+            {% for req in approved_requests %}
+            <tr>
+                <td>{{ req.RequestID }}</td>
+                <td>{{ req.RecipientName }}</td>
+                <td>{{ req.BloodGroup }}</td>
+                <td>{{ req.RequiredUnits }}</td>
+                <td><strong class="status-green">Approved</strong></td>
+                <td>
+                    <form method="POST" style="display:inline;">
+                        <input type="hidden" name="request_id" value="{{ req.RequestID }}">
+                        <input type="hidden" name="request_action" value="Complete">
+                        <button type="submit" class="btn btn-blue" style="padding: 5px;">Mark as Complete & Deduct Stock</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="flash info">No approved requests ready for completion status.</p>
+    {% endif %}
+
+    <hr>
+    <h2 id="donors">View Donors</h2>
+    <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Group</th><th>Email</th><th>Last Donation</th><th>Eligibility</th></tr></thead>
+        <tbody>
+            {% for donor in all_donors %}
+            <tr>
+                <td>{{ donor.DonorID }}</td><td>{{ donor.Name }}</td><td>{{ donor.BloodGroup }}</td><td>{{ donor.Email }}</td>
+                <td>{{ donor.LastDonationDate if donor.LastDonationDate else 'N/A' }}</td>
+                <td>
+                    <strong class="{% if donor.EligibilityStatus == 'Eligible' %}status-green{% else %}status-red{% endif %}">
+                        {{ donor.EligibilityStatus }}
+                    </strong>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <hr>
+    <h2 id="recipients">View Recipients</h2>
+    <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Group Needed</th><th>Contact</th></tr></thead>
+        <tbody>
+            {% for recipient in all_recipients %}
+            <tr>
+                <td>{{ recipient.RecipientID }}</td><td>{{ recipient.Name }}</td><td>{{ recipient.BloodGroup }}</td>
+                <td>{{ recipient.ContactNumber }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% else %}
+        <h1 class="flash danger">Access Denied. Please log in.</h1>
+    {% endif %}
+
+{% endblock %}
