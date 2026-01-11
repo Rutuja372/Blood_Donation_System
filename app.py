@@ -5,8 +5,6 @@ import importlib
 import importlib.util     
 
 
-
-
 _flask_mysqldb_spec = importlib.util.find_spec('flask_mysqldb')
 if _flask_mysqldb_spec is not None:
     _flask_mysqldb = importlib.import_module('flask_mysqldb')
@@ -73,7 +71,7 @@ def login_required(role):
 
 def get_db_cursor():
     """Initializes and returns a database cursor, handling connection errors."""
-    if 'cursor' not in g:
+    if not hasattr(g, 'cursor'):
         try:
             g.conn = mysql.connection
             g.cursor = g.conn.cursor()
@@ -85,20 +83,52 @@ def get_db_cursor():
 @app.teardown_appcontext
 def close_db(e=None):
     """Closes the database connection at the end of the request."""
-    g.pop('cursor', None)
-    g.pop('conn', None)
+    # Close cursor if present
+    cursor = getattr(g, 'cursor', None)
+    if cursor is not None:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+        if hasattr(g, 'cursor'):
+            delattr(g, 'cursor')
+
+    # Close connection if present
+    conn = getattr(g, 'conn', None)
+    if conn is not None:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        if hasattr(g, 'conn'):
+            delattr(g, 'conn')
 
 def update_blood_stock(blood_group, units_change, cursor, conn):
-    """Adds/removes units from BloodStock table."""
+    """Adds/removes units from BloodStock table. Prevent negative inventory and handle missing groups."""
     try:
-        # Check if the BloodGroup exists
-        cursor.execute("SELECT BloodGroup FROM BloodStock WHERE BloodGroup = %s", [blood_group])
-        if cursor.fetchone() is None:
-            # If group doesn't exist, insert it (shouldn't happen with the provided schema)
+        # Ensure units_change is an integer
+        units_change = int(units_change)
+
+        # Check if the BloodGroup exists and read current stock
+        cursor.execute("SELECT AvailableUnits FROM BloodStock WHERE BloodGroup = %s", [blood_group])
+        row = cursor.fetchone()
+
+        if row is None:
+            # If group doesn't exist and we're trying to deduct, fail
+            if units_change < 0:
+                flash(f"Insufficient stock: {blood_group} does not exist.", 'danger')
+                return False
+            # Otherwise insert initial stock
             cursor.execute("INSERT INTO BloodStock (BloodGroup, AvailableUnits) VALUES (%s, %s)", (blood_group, units_change))
             return True
-            
-        cursor.execute("UPDATE BloodStock SET AvailableUnits = AvailableUnits + %s WHERE BloodGroup = %s", (units_change, blood_group))
+
+        current_units = row.get('AvailableUnits') if isinstance(row, dict) else row[0]
+        new_units = current_units + units_change
+        if new_units < 0:
+            flash(f"Insufficient stock for {blood_group}. Available: {current_units}, required: {abs(units_change)}", 'danger')
+            return False
+
+        cursor.execute("UPDATE BloodStock SET AvailableUnits = %s WHERE BloodGroup = %s", (new_units, blood_group))
         return True
     except Exception as e:
         flash(f"Stock update failed: {e}", 'danger')
